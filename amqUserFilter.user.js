@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         AMQ user filter
 // @namespace    http://tampermonkey.net/
-// @version      0.1
-// @description  Add an input field that allows you to filter friends and all users
+// @version      0.1.1
+// @description  Adds an input field that allows you to filter friends and all users
 // @author       IAmAsianNoob
 // @match        https://animemusicquiz.com/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=animemusicquiz.com
@@ -11,6 +11,8 @@
 // ==/UserScript==
 
 if (document.getElementById('startPage')) return;
+
+const ORIGINAL_NAMES = JSON.parse(localStorage.getItem('AMQOriginalPlayerNames')) ?? {};
 
 function onInput(e) {
 	if (e.inputType === 'insertText' || e.inputType === 'deleteContentBackward' || e.inputType === 'deleteContentForward') {
@@ -33,7 +35,8 @@ function showAllUsers() {
 function applyFilter(filter) {
 	const allPlayers = [...Object.entries(socialTab.onlineFriends), ...Object.entries(socialTab.offlineFriends), ...Object.entries(socialTab.allPlayerList._playerEntries)];
 	for (const [playerName, player] of allPlayers) {
-		if (playerName.toLowerCase().indexOf(filter) !== -1) {
+		const originalName = ORIGINAL_NAMES[playerName] ?? '';
+		if (playerName.toLowerCase().indexOf(filter) !== -1 || originalName.toLowerCase().indexOf(filter) !== -1) {
 			player.show?.() || player.$html.show();
 		} else {
 			player.hide?.() || player.$html.hide();
@@ -67,6 +70,17 @@ function addListeners() {
 				}
 			}
 		}, 0);
+	}).bindListener();
+
+	// This only triggers when a player profile is opened.
+	// The original player name is only stored when it's not the name as the current player name 
+	// I.e. it has been changed
+	new Listener('player profile', profile => {
+		const { name, originalName } = profile;
+		if (name !== originalName && !ORIGINAL_NAMES[name]) {
+			ORIGINAL_NAMES[name] = originalName;
+			localStorage.setItem('AMQOriginalPlayerNames', JSON.stringify(ORIGINAL_NAMES));
+		}
 	}).bindListener();
 }
 
