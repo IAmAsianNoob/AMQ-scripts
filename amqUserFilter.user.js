@@ -13,7 +13,7 @@
 if (document.getElementById('startPage')) return;
 
 function onInput(e) {
-	if (e.inputType === 'insertText' || e.inputType === 'deleteContentBackward') {
+	if (e.inputType === 'insertText' || e.inputType === 'deleteContentBackward' || e.inputType === 'deleteContentForward') {
 		const filter = e.target.value.toLowerCase();
 		if (filter) {
 			applyFilter(filter);
