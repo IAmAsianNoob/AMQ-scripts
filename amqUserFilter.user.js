@@ -26,6 +26,7 @@ function onInput(e) {
 }
 
 function showAllUsers() {
+    document.getElementById('clearUserFilterInput').classList.add('hide');
 	const allPlayers = [...Object.values(socialTab.onlineFriends), ...Object.values(socialTab.offlineFriends), ...Object.values(socialTab.allPlayerList._playerEntries)];
 	for (const player of allPlayers) {
 		player.show?.() || player.$html.show();
@@ -33,6 +34,7 @@ function showAllUsers() {
 }
 
 function applyFilter(filters) {
+    document.getElementById('clearUserFilterInput').classList.remove('hide');
 	const allPlayers = [...Object.entries(socialTab.onlineFriends), ...Object.entries(socialTab.offlineFriends), ...Object.entries(socialTab.allPlayerList._playerEntries)];
 	for (const [playerName, player] of allPlayers) {
 		const originalName = ORIGINAL_NAMES[playerName] ?? '';
@@ -48,7 +50,6 @@ function addUserFilter() {
 	const socialTab = document.getElementById('socialTab');
 
 	const filterContainer = document.createElement('div');
-	filterContainer.classList.add('ps', 'ps--theme_default', 'ps--active-y');
 
 	const input = document.createElement('input');
 	input.setAttribute('type', 'text');
@@ -56,8 +57,26 @@ function addUserFilter() {
 	input.id = 'userFilterInput';
 
 	input.addEventListener('input', onInput);
+	input.addEventListener('keydown', e => {
+		if (e.which === 27) {
+			e.target.value = '';
+			showAllUsers();
+		}
+	});
 
-	socialTab.insertBefore(input, socialTab.children[0]);
+	const clearBtn = document.createElement('span');
+	clearBtn.id = 'clearUserFilterInput';
+	clearBtn.classList.add('hide');
+	clearBtn.innerText = '✖';
+	clearBtn.addEventListener('click', () => {
+		const input = document.getElementById('userFilterInput');
+		input.value = '';
+		input.focus();
+		showAllUsers();
+	});
+
+	filterContainer.append(input, clearBtn);
+	socialTab.insertBefore(filterContainer, socialTab.children[0]);
 }
 
 function addListeners() {
@@ -98,7 +117,15 @@ AMQ_addStyle(`
 		padding: 2px 12px;
 		border-radius: 2px;
 	}
+	#clearUserFilterInput {
+		position: absolute;
+		right: 0px;
+		padding-top: 2px;
+		padding-right: 5px;
+	}
+	#clearUserFilterInput:hover {
+		cursor: pointer;
+	}
 `);
-
 
 setup();
