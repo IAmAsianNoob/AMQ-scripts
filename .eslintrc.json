@@ -1,0 +1,24 @@
+{
+    "env": {
+        "browser": true,
+        "es2021": true,
+        "greasemonkey": true,
+        "jquery": true
+    },
+    "extends": "eslint:recommended",
+    "overrides": [
+    ],
+    "parserOptions": {
+        "ecmaVersion": "latest",
+        "ecmaFeatures": {
+            "globalReturn": true
+        }
+    },
+    "globals": {
+		"Listener": "readonly",
+		"socialTab": "readonly",
+		"AMQ_addStyle": "readonly"
+	},
+    "rules": {
+    }
+}
