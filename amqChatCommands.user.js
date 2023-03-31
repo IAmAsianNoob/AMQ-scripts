@@ -6,6 +6,8 @@
 // @author       IAmAsianNoob
 // @match        https://animemusicquiz.com/
 // @icon         https://www.google.com/s2/favicons?domain=animemusicquiz.com
+// @downloadURL  https://raw.githubusercontent.com/IAmAsianNoob/AMQ-scripts//main/amqChatCommands.user.js
+// @updateURL    https://raw.githubusercontent.com/IAmAsianNoob/AMQ-scripts//main/amqChatCommands.user.js
 // @grant        none
 // ==/UserScript==
 
