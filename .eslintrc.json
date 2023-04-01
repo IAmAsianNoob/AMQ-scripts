@@ -17,6 +17,9 @@
     "globals": {
 		"Listener": "readonly",
 		"socialTab": "readonly",
+        "quiz": "readonly",
+        "socket": "readonly",
+        "translateShortcodeToUnicode": "readonly",
 		"AMQ_addStyle": "readonly"
 	},
     "rules": {

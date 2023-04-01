@@ -127,7 +127,7 @@ function toggleAutoKey() {
 }
 
 function autoKey(e) {
-	const answer = e.target.value || '';
+	const answer = e.target.value.replace('​', '') || '​';
 	sendAMQCommand('quiz answer', {
 		answer,
 		isPlaying: true,
