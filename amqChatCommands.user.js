@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         AMQ Chat Commands
 // @namespace    http://tampermonkey.net/
-// @version      0.1
+// @version      0.2
 // @description  Yet another AMQ chat commands script
 // @author       IAmAsianNoob
 // @match        https://animemusicquiz.com/
@@ -19,9 +19,12 @@ const COMMANDS = {};
 const DEFAULT_CONFIG = {
 	COMMAND_PREFIX: '/',
 	autoKey: false,
-	autoSkip: false
+	autoSkip: false,
+	autoReady: true,
+	autoStart: false
 };
-const settings = localStorage.getItem('amqChatCommandsConfig') ? JSON.parse(localStorage.getItem('amqChatCommandsConfig')) : DEFAULT_CONFIG;
+const persistentSettings = JSON.parse(localStorage.getItem('amqChatCommandsConfig')) || {};
+const settings = { ...DEFAULT_CONFIG, ...persistentSettings };
 const LISTENERS = new Map();
 
 const COMMAND_TYPES = {};
@@ -35,11 +38,14 @@ const COMMAND_TYPES = {};
 function setup() {
 	setupCommandListener();
 	setupListeners();
-	registerCommand('autokey', toggleAutoKey, { aliases: ['ak', 'akey'] });
-	registerCommand('autoskip', toggleAutoSkip, { aliases: ['as', 'askip'] });
-	registerCommand('autothrow', toggleAutoThrow, { aliases: ['at', 'athrow'] });
+	
+	registerCommand('autoKey', toggleAutoKey, { aliases: ['ak', 'akey'] });
+	registerCommand('autoSkip', toggleAutoSkip, { aliases: ['askip'] });
+	registerCommand('autoThrow', toggleAutoThrow, { aliases: ['at', 'athrow'] });
 	registerCommand('roll', roll, { bubbleUp: true });
 	registerCommand('ping', ping, { bubbleUp: true });
+	registerCommand('autoReady', toggleAutoReady, { aliases: ['ar', 'aready'], persistent: true });
+	registerCommand('autoStart', toggleAutoStart, { aliases: ['astart'], persistent: true });
 }
 
 function setupCommandListener() {
@@ -50,32 +56,60 @@ function setupCommandListener() {
 		if (!input.startsWith(settings.COMMAND_PREFIX)) return;
 
 		const args = input.split(/\s+/);
-		const cmd = args[0].substring(settings.COMMAND_PREFIX.length);
+		let cmd = args[0].substring(settings.COMMAND_PREFIX.length);
 
 		if (!(cmd in COMMANDS)) return;
 		let command = COMMANDS[cmd];
-		if (typeof command === 'string')
-			command = COMMANDS[command];
+		if (typeof command === 'string') {
+			cmd = command;
+			command = COMMANDS[cmd];
+		}
 
 		if (!command.bubbleUp) {
 			e.preventDefault();
 			e.target.value = '';
 		}
 		command.execute(args.slice(1));
+		if (command.persistent) {
+			updatePersistentSettings(cmd);
+		}
 	});
 }
 
 function setupListeners() {
 	LISTENERS.set('autoSkip', new Listener('play next song', () => {
-		quiz.skipClicked();
+		if (!quiz.skipController._toggled)
+			quiz.skipClicked();
 	}));
 	LISTENERS.set('autoThrow', new Listener('play next song', () => {
 		quiz.answerInput.setNewAnswer(settings.autoThrow);
 	}));
+	LISTENERS.set('autoReady', [
+		new Listener('Spectator Change To Player', player => {
+			if (player.name === selfName)
+				setTimeout(checkReady, 10);
+		}),
+		new Listener('quiz over', () => {
+			setTimeout(checkReady, 10);
+		}),
+		new Listener('Room Settings Changed', () => {
+			setTimeout(checkReady, 10);
+		})
+	]);
+	LISTENERS.set('autoStart', [
+		new Listener('Player Ready Change', () => {
+			setTimeout(checkStart, 10);
+		})
+	]);
 }
 
-function registerCommand(name, callback, { bubbleUp = false, aliases = [] } = {}) {
-	const command = { execute: callback, bubbleUp };
+function registerCommand(name, callback, { bubbleUp = false, aliases = [], persistent = false } = {}) {
+	// Need to find a better way of triggering the callback
+	if (settings[name] === true) {
+		settings[name] = false;
+		callback();
+	}
+	const command = { execute: callback, bubbleUp, persistent };
 	if (name in COMMANDS) {
 		logToChat(`⚠️ Trying to register command with already existing alias: ${name}`);
 		return;
@@ -88,6 +122,15 @@ function registerCommand(name, callback, { bubbleUp = false, aliases = [] } = {}
 		}
 		COMMANDS[alias] = name;
 	}
+
+	if (persistent && !persistentSettings[name]) {
+		updatePersistentSettings(name);
+	}
+}
+
+function updatePersistentSettings(key) {
+	persistentSettings[key] = settings[key];
+	localStorage.setItem('', JSON.stringify(persistentSettings));
 }
 
 function sendAMQCommand(command, payload) {
@@ -138,7 +181,8 @@ function autoKey(e) {
 function toggleAutoSkip() {
 	settings.autoSkip = !settings.autoSkip;
 	if (settings.autoSkip) {
-		sendAMQCommand('skip vote', { skipVote: true });
+		if (!quiz.skipController._toggled)
+			quiz.skipClicked();
 		LISTENERS.get('autoSkip').bindListener();
 	} else {
 		LISTENERS.get('autoSkip').unbindListener();
@@ -199,6 +243,49 @@ function ping(args) {
 		.catch(() => {
 			sendChatMessage("Response Time: " + (Date.now() - startTime) + 'ms');
 		});
+}
+
+function toggleAutoReady() {
+	settings.autoReady = !settings.autoReady;
+	if (settings.autoReady) {
+		checkReady();
+		for (const listener of LISTENERS.get('autoReady')) {
+			listener.bindListener();
+		}
+	} else {
+		for (const listener of LISTENERS.get('autoReady')) {
+			listener.unbindListener();
+		}
+	}
+	logToChat(`AutoReady: ${settings.autoReady ? 'Enabled' : 'Disabled'}`);
+}
+
+function checkReady() {
+	if (!settings.autoReady || !lobby.inLobby || lobby.isHost || lobby.isSpectator || lobby.isReady || quiz.gamMode === 'Ranked') return;
+	lobby.fireMainButtonEvent();
+}
+
+function toggleAutoStart() {
+	settings.autoStart = !settings.autoStart;
+	if (settings.autoStart) {
+		checkReady();
+		for (const listener of LISTENERS.get('autoStart')) {
+			listener.bindListener();
+		}
+	} else {
+		for (const listener of LISTENERS.get('autoStart')) {
+			listener.unbindListener();
+		}
+	}
+	logToChat(`AutoStart: ${settings.autoStart ? 'Enabled' : 'Disabled'}`);
+}
+
+function checkStart() {
+	if (!lobby.inLobby || !lobby.isHost || quiz.gameMode === "Ranked") return;
+	for (const player of Object.values(lobby.players)) {
+		if (!player.ready) return;
+	}
+	lobby.fireMainButtonEvent();
 }
 
 setup();

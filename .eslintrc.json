@@ -19,7 +19,9 @@
 		"socialTab": "readonly",
         "quiz": "readonly",
         "socket": "readonly",
+        "lobby": "readonly",
         "translateShortcodeToUnicode": "readonly",
+        "selfName": "readonly",
 		"AMQ_addStyle": "readonly"
 	},
     "rules": {
