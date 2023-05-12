@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         AMQ Chat Commands
 // @namespace    http://tampermonkey.net/
-// @version      0.2
+// @version      0.3
 // @description  Yet another AMQ chat commands script
 // @author       IAmAsianNoob
 // @match        https://animemusicquiz.com/
@@ -21,7 +21,8 @@ const DEFAULT_CONFIG = {
 	autoKey: false,
 	autoSkip: false,
 	autoReady: true,
-	autoStart: false
+	autoStart: false,
+	dropdownToggle: false
 };
 const persistentSettings = JSON.parse(localStorage.getItem('amqChatCommandsConfig')) || {};
 const settings = { ...DEFAULT_CONFIG, ...persistentSettings };
@@ -46,6 +47,7 @@ function setup() {
 	registerCommand('ping', ping, { bubbleUp: true });
 	registerCommand('autoReady', toggleAutoReady, { aliases: ['ar', 'aready'], persistent: true });
 	registerCommand('autoStart', toggleAutoStart, { aliases: ['astart'], persistent: true });
+	registerCommand('dropdown', toggleDropdown, { aliases: ['dd'] });
 }
 
 function setupCommandListener() {
@@ -200,6 +202,16 @@ function toggleAutoThrow(arg) {
 		LISTENERS.get('autoThrow').unbindListener();
 		logToChat(`Stopped Auto throwing`);
 	}
+}
+
+function toggleDropdown() {
+	settings.dropdownToggle = !settings.dropdownToggle;
+	if (settings.dropdownToggle) {
+		document.getElementById('qpAnswerInput').nextElementSibling.classList.add('hide');
+	} else {
+		document.getElementById('qpAnswerInput').nextElementSibling.classList.remove('hide');
+	}
+	logToChat(`Dropdown Toggle: ${settings.dropdownToggle ? 'Enable' : 'Disabled'}`);
 }
 
 function roll(args) {
