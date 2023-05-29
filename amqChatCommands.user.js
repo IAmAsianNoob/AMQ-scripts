@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         AMQ Chat Commands
 // @namespace    http://tampermonkey.net/
-// @version      0.3
+// @version      0.3.1
 // @description  Yet another AMQ chat commands script
 // @author       IAmAsianNoob
 // @match        https://animemusicquiz.com/
@@ -39,7 +39,7 @@ const COMMAND_TYPES = {};
 function setup() {
 	setupCommandListener();
 	setupListeners();
-	
+
 	registerCommand('autoKey', toggleAutoKey, { aliases: ['ak', 'akey'] });
 	registerCommand('autoSkip', toggleAutoSkip, { aliases: ['askip'] });
 	registerCommand('autoThrow', toggleAutoThrow, { aliases: ['at', 'athrow'] });
@@ -79,13 +79,17 @@ function setupCommandListener() {
 }
 
 function setupListeners() {
-	LISTENERS.set('autoSkip', new Listener('play next song', () => {
-		if (!quiz.skipController._toggled)
-			quiz.skipClicked();
-	}));
-	LISTENERS.set('autoThrow', new Listener('play next song', () => {
-		quiz.answerInput.setNewAnswer(settings.autoThrow);
-	}));
+	LISTENERS.set('autoSkip', [
+			new Listener('play next song', () => {
+			if (!quiz.skipController._toggled)
+				quiz.skipClicked();
+		})
+	]);
+	LISTENERS.set('autoThrow', [
+		new Listener('play next song', () => {
+			quiz.answerInput.setNewAnswer(settings.autoThrow);
+		})
+	]);
 	LISTENERS.set('autoReady', [
 		new Listener('Spectator Change To Player', player => {
 			if (player.name === selfName)
@@ -107,9 +111,10 @@ function setupListeners() {
 
 function registerCommand(name, callback, { bubbleUp = false, aliases = [], persistent = false } = {}) {
 	// Need to find a better way of triggering the callback
-	if (settings[name] === true) {
-		settings[name] = false;
-		callback();
+	if (settings[name] === true && LISTENERS.has(name)) {
+        for (const listener of LISTENERS.get(name)) {
+            listener.bindListener();
+        }
 	}
 	const command = { execute: callback, bubbleUp, persistent };
 	if (name in COMMANDS) {
@@ -185,9 +190,13 @@ function toggleAutoSkip() {
 	if (settings.autoSkip) {
 		if (!quiz.skipController._toggled)
 			quiz.skipClicked();
-		LISTENERS.get('autoSkip').bindListener();
+        for (const listener of LISTENERS.get('autoSkip')) {
+            listener.bindListener();
+        }
 	} else {
-		LISTENERS.get('autoSkip').unbindListener();
+        for (const listener of LISTENERS.get('autoSkip')) {
+            listener.unbindListener();
+        }
 	}
 	logToChat(`AutoSkip: ${settings.autoSkip ? 'Enabled' : 'Disabled'}`);
 }
@@ -196,10 +205,14 @@ function toggleAutoThrow(arg) {
 	if (arg?.length) {
 		settings.autoThrow = translateShortcodeToUnicode(arg.join(' ')).text;
 		quiz.answerInput.setNewAnswer(settings.autoThrow);
-		LISTENERS.get('autoThrow').bindListener();
+        for (const listener of LISTENERS.get('autoThrow')) {
+            listener.bindListener();
+        }
 		logToChat(`Auto throwing: ${settings.autoThrow}`);
 	} else if (settings.autoThrow) {
-		LISTENERS.get('autoThrow').unbindListener();
+        for (const listener of LISTENERS.get('autoThrow')) {
+            listener.unbindListener();
+        }
 		logToChat(`Stopped Auto throwing`);
 	}
 }
