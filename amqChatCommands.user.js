@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         AMQ Chat Commands
 // @namespace    http://tampermonkey.net/
-// @version      0.3.1
+// @version      0.3.2
 // @description  Yet another AMQ chat commands script
 // @author       IAmAsianNoob
 // @match        https://animemusicquiz.com/
@@ -24,6 +24,7 @@ const DEFAULT_CONFIG = {
 	autoStart: false,
 	dropdownToggle: false
 };
+const TIMEOUT_DELAY = 10;
 const persistentSettings = JSON.parse(localStorage.getItem('amqChatCommandsConfig')) || {};
 const settings = { ...DEFAULT_CONFIG, ...persistentSettings };
 const LISTENERS = new Map();
@@ -80,9 +81,11 @@ function setupCommandListener() {
 
 function setupListeners() {
 	LISTENERS.set('autoSkip', [
-			new Listener('play next song', () => {
-			if (!quiz.skipController._toggled)
-				quiz.skipClicked();
+		new Listener('play next song', () => {
+			setTimeout(() => {
+				if (!quiz.skipController._toggled)
+					quiz.skipClicked();
+			}, TIMEOUT_DELAY);
 		})
 	]);
 	LISTENERS.set('autoThrow', [
@@ -93,18 +96,18 @@ function setupListeners() {
 	LISTENERS.set('autoReady', [
 		new Listener('Spectator Change To Player', player => {
 			if (player.name === selfName)
-				setTimeout(checkReady, 10);
+				setTimeout(checkReady, TIMEOUT_DELAY);
 		}),
 		new Listener('quiz over', () => {
-			setTimeout(checkReady, 10);
+			setTimeout(checkReady, TIMEOUT_DELAY);
 		}),
 		new Listener('Room Settings Changed', () => {
-			setTimeout(checkReady, 10);
+			setTimeout(checkReady, TIMEOUT_DELAY);
 		})
 	]);
 	LISTENERS.set('autoStart', [
 		new Listener('Player Ready Change', () => {
-			setTimeout(checkStart, 10);
+			setTimeout(checkStart, TIMEOUT_DELAY);
 		})
 	]);
 }
